@@ -1,0 +1,169 @@
+﻿<h3>Услуги</h3>
+<div id="tableServiceBlock"></div>
+<div id="editServiceBlock">
+    <h3>Редактировать запись об услуге</h3>
+    <table>
+        <tr><td><input type="hidden" id="editId" /></td><td></td></tr>
+        <tr><td><label>Услуга: </label></td><td><input type="text" id="editName" /></td></tr>
+        <tr><td><label>Стоимость: </label></td><td><input type="text" id="editPrice" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="editService">Сохранить</button>
+    <button class="btn btn-primary" id="backToAdd">Вернуться к добавлению</button>
+</div>
+<div id="createServiceBlock">
+    <h3>Добавить запись об услуге</h3>
+    <table>
+        <tr><td><label>Услуга: </label></td><td><input type="text" id="addName" /></td></tr>
+        <tr><td><label>Стоимость: </label></td><td><input type="text" id="addPrice" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="addService">Сохранить</button>
+</div>
+<hr />
+
+@Scripts.Render("~/bundles/jquery")
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetAllServices();
+
+        $("#addService").click(function (event) {
+            event.preventDefault();
+            AddService();
+        });
+
+        $("#editService").click(function (event) {
+            event.preventDefault();
+            EditService();
+        });
+
+        $("#backToAdd").click(function (event) {
+            event.preventDefault();
+            $("#createServiceBlock").css('display', 'block');
+            $("#editServiceBlock").css('display', 'none');
+        });
+    });
+
+    function GetAllServices() {
+
+        $("#createServiceBlock").css('display', 'block');
+        $("#editServiceBlock").css('display', 'none');
+        $.ajax({
+            url: '/api/Services',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                WriteServices(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function AddService() {
+
+        var service = {
+            Service1: $('#addName').val(),
+            Price: $('#addPrice').val(),
+        };
+
+        $.ajax({
+            url: '/api/Services',
+            type: 'POST',
+            data: JSON.stringify(service),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllServices();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditService() {
+        var id = $('#editId').val()
+        var service = {
+            IdS: id,
+            Service1: $('#editName').val(),
+            Price: $('#editPrice').val(),
+        };
+        $.ajax({
+            url: '/api/Services/' + id,
+            type: 'PUT',
+            data: JSON.stringify(service),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllServices();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function ShowService(service) {
+        if (service != null) {
+            $("#createServiceBlock").css('display', 'none');
+            $("#editServiceBlock").css('display', 'block');
+            $("#editId").val(service.IdS);
+            $("#editName").val(service.Service1);
+            $("#editPrice").val(service.Price);
+        }
+        else {
+            alert("Такая услуга не существует");
+        }
+    }
+
+    function GetService(id) {
+
+        $.ajax({
+            url: '/api/Services/' + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                ShowService(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditItem(el) {
+
+        var id = $(el).attr('data-item');
+        GetService(id);
+    }
+
+    function DeleteService(id) {
+
+        $.ajax({
+            url: '/api/Services/' + id,
+            type: 'DELETE',
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllServices();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function DeleteItem(el) {
+
+        var id = $(el).attr('data-item');
+        DeleteService(id);
+    }
+
+    function WriteServices(services) {
+        var strResult = "<table><th>ID</th><th>Услуга</th><th>Стоимость</th>";
+        $.each(services, function (index, service) {
+            strResult += "<tr><td>" + service.IdS + "</td><td> " + service.Service1 + "</td><td>" + service.Price + "</td>" +
+                "<td><a class='link' id='editItem' data-item='" + service.IdS + "' onclick='EditItem(this);' >Редактировать</a></td>" +
+                "<td><a class='link' id='delItem' data-item='" + service.IdS + "' onclick='DeleteItem(this);' >Удалить</a></td></tr>";
+        });
+        strResult += "</table>";
+        $("#tableServiceBlock").html(strResult);
+    }
+</script>

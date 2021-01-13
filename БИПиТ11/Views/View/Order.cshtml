@@ -1,0 +1,228 @@
+﻿<h3>Заказы</h3>
+<div id="tableOrderBlock"></div>
+<div id="editOrderBlock">
+    <h3>Редактировать запись о заказе</h3>
+    <table>
+        <tr><td><input type="hidden" id="editId" /></td><td></td></tr>
+        <tr><td><label>Клиент: </label></td><td> <select id="editClientSelect"></select></td></tr>
+        <tr><td><label>Услуга: </label></td><td><select id="editServiceSelect"></select></td></tr>
+        <tr><td><label>Срок: </label></td><td><input type="number" min="1" max="1000" id="editTime" /></td></tr>
+        <tr><td><label>Дата заказа: </label></td><td><input type="date" id="editDate" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="editOrder">Сохранить</button>
+    <button class="btn btn-primary" id="backToAdd">Вернуться к добавлению</button>
+</div>
+<div id="createOrderBlock">
+    <h3>Добавить запись о заказе</h3>
+    <table>
+        <tr><td><label>Клиент: </label></td><td> <select id="addClientSelect"></select></td></tr>
+        <tr><td><label>Услуга: </label></td><td><select id="addServiceSelect"></select></td></tr>
+        <tr><td><label>Срок: </label></td><td><input type="number" min="1" max="1000" id="addTime" /></td></tr>
+        <tr><td><label>Дата заказа: </label></td><td><input type="date" id="addDate" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="addOrder">Сохранить</button>
+</div>
+
+@Scripts.Render("~/bundles/jquery")
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetAllOrders();
+        GetSelectData(null, null, "add");
+        $("#addOrder").click(function (event) {
+            event.preventDefault();
+            AddOrder();
+        });
+
+        $("#editOrder").click(function (event) {
+            event.preventDefault();
+            EditOrder();
+        });
+
+        $("#backToAdd").click(function (event) {
+            event.preventDefault();
+            $("#createOrderBlock").css('display', 'block');
+            $("#editOrderBlock").css('display', 'none');
+        });
+    });
+
+    function GetSelectData(editClientId, editServiceId, format) {
+
+        $.when(ajaxCall1(), ajaxCall2()).done(function (ajax1Results, ajax2Results) {
+            PrintSelects(ajax1Results[0], ajax2Results[0], editClientId, editServiceId, format)
+        });
+
+        function ajaxCall1() {
+            
+            return $.ajax({
+                url: '/api/Clients',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data)
+                },
+            });
+        }
+        function ajaxCall2() {
+            return $.ajax({
+                url: '/api/Services',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data)
+                },
+            });
+        }
+    }
+
+    function PrintSelects(clients, services, editClientId, editServiceId, format) {
+        var strResult = "";
+        $.each(clients, function (index, client) {
+            if (editClientId == null || editClientId != client.IdC)
+                strResult += "<option value='" + client.IdC + "'>" + client.Client1 + "</option>"
+            else if (editClientId != null && editClientId == client.IdC)
+                strResult += "<option value='" + client.IdC + "' selected>" + client.Client1 + "</option>"
+        });
+        $("#"+ format +"ClientSelect").html(strResult);
+
+        strResult = "";
+        $.each(services, function (index, service) {
+            if (editServiceId == null || editServiceId != service.IdS)
+                strResult += "<option value='" + service.IdS + "'>" + service.Service1 + "</option>"
+            else if (editServiceId != null && editServiceId == service.IdS)
+                strResult += "<option value='" + service.IdS + "' selected>" + service.Service1 + "</option>"
+         });
+        $("#"+ format +"ServiceSelect").html(strResult);
+    }
+
+    function GetAllOrders() {
+
+        $("#createOrderBlock").css('display', 'block');
+        $("#editOrderBlock").css('display', 'none');
+        $.ajax({
+            url: '/api/Orders',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                WriteOrders(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function AddOrder() {
+
+        var order = {
+            IdC_FK: $('#addClientSelect').find(":selected").val(),
+            IdS_FK: $('#addServiceSelect').find(":selected").val(),
+            Time: $('#addTime').val(),
+            Date: $('#addDate').val(),
+        };
+
+        $.ajax({
+            url: '/api/Orders',
+            type: 'POST',
+            data: JSON.stringify(order),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllOrders();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditOrder() {
+        var id = $('#editId').val()
+        var order = {
+            IdO: id,
+            IdC_FK: $('#editClientSelect').find(":selected").val(),
+            IdS_FK: $('#editServiceSelect').find(":selected").val(),
+            Time: $('#editTime').val(),
+            Date: $('#editDate').val(),
+        };
+        $.ajax({
+            url: '/api/Orders/' + id,
+            type: 'PUT',
+            data: JSON.stringify(order),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllOrders();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function ShowOrder(order) {
+        if (order != null) {
+            $("#createOrderBlock").css('display', 'none');
+            $("#editOrderBlock").css('display', 'block');
+            $("#editId").val(order.IdO);
+            $("#editTime").val(order.Time);
+            $("#editDate").val(order.Date.split("T")[0]);
+            GetSelectData(order.IdC_FK, order.IdS_FK, "edit");
+        }
+        else {
+            alert("Такой заказ не существует");
+        }
+    }
+
+    function GetOrder(id) {
+
+        $.ajax({
+            url: '/api/Orders/' + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                ShowOrder(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditItem(el) {
+
+        var id = $(el).attr('data-item');
+        GetOrder(id);
+    }
+
+    function DeleteOrder(id) {
+
+        $.ajax({
+            url: '/api/Orders/' + id,
+            type: 'DELETE',
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllOrders();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function DeleteItem(el) {
+
+        var id = $(el).attr('data-item');
+        DeleteOrder(id);
+    }
+
+    function WriteOrders(orders) {
+        var strResult = "<table><th>ID</th><th>Клиент</th><th>Услуга</th><th>Срок</th><th>Цена</th><th>Стоимость</th><th>Дата заказа</th>";
+        $.each(orders, function (index, order) {
+            strResult += "<tr><td>" + order.IdO + "</td><td> " + order.Client + "</td><td>"
+                + order.Service + "</td><td>" + order.Time + "</td ><td>" + order.Price + "</td><td>"
+                + order.Total + "</td><td>" + order.Date.split("T")[0] + "</td>" +
+                "<td><a class='link' id='editItem' data-item='" + order.IdO + "' onclick='EditItem(this);' >Редактировать</a></td>" +
+                "<td><a class='link' id='delItem' data-item='" + order.IdO + "' onclick='DeleteItem(this);' >Удалить</a></td></tr>";
+        });
+        strResult += "</table>";
+        $("#tableOrderBlock").html(strResult);
+    }
+</script>

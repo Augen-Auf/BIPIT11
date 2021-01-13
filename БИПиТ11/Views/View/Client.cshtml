@@ -1,0 +1,168 @@
+﻿<h3>Клиенты</h3>
+<div id="tableClientBlock"></div>
+<div id="editClientBlock">
+    <h3>Редактировать запись о клиенте</h3>
+    <table>
+        <tr><td><input type="hidden" id="editId" /></td><td></td></tr>
+        <tr><td><label>Клиент: </label></td><td><input type="text" id="editName" /></td></tr>
+        <tr><td><label>Телефон: </label></td><td><input type="text" id="editPhone" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="editClient">Сохранить</button>
+    <button class="btn btn-primary" id="backToAdd">Вернуться к добавлению</button>
+</div>
+<div id="createClientBlock">
+    <h3>Добавить запись о клиенте</h3>
+    <table>
+        <tr><td><label>Клиент: </label></td><td><input type="text" id="addName" /></td></tr>
+        <tr><td><label>Телефон: </label></td><td><input type="text" id="addPhone" /></td></tr>
+    </table>
+    <button class="btn btn-primary" id="addClient">Сохранить</button>
+</div>
+
+@Scripts.Render("~/bundles/jquery")
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetAllClients();
+
+        $("#addClient").click(function (event) {
+            event.preventDefault();
+            AddClient();
+        });
+
+        $("#editClient").click(function (event) {
+            event.preventDefault();
+            EditClient();
+        });
+
+        $("#backToAdd").click(function (event) {
+            event.preventDefault();
+            $("#createClientBlock").css('display', 'block');
+            $("#editClientBlock").css('display', 'none');
+        });
+    });
+
+    function GetAllClients() {
+
+        $("#createClientBlock").css('display', 'block');
+        $("#editClientBlock").css('display', 'none');
+        $.ajax({
+            url: '/api/Clients',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                WriteClients(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function AddClient() {
+
+        var client = {
+            Client1: $('#addName').val(),
+            Phone: $('#addPhone').val(),
+        };
+
+        $.ajax({
+            url: '/api/Clients',
+            type: 'POST',
+            data: JSON.stringify(client),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllClients();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditClient() {
+        var id = $('#editId').val()
+        var client = {
+            IdС: id,
+            Client1: $('#editName').val(),
+            Phone: $('#editPhone').val(),
+        };
+        $.ajax({
+            url: '/api/Clients/' + id,
+            type: 'PUT',
+            data: JSON.stringify(client),
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllClients();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function ShowClient(client) {
+        if (client != null) {
+            $("#createClientBlock").css('display', 'none');
+            $("#editClientBlock").css('display', 'block');
+            $("#editId").val(client.IdC);
+            $("#editName").val(client.Client1);
+            $("#editPhone").val(client.Phone);
+        }
+        else {
+            alert("Такой клиент не существует");
+        }
+    }
+
+    function GetClient(id) {
+
+        $.ajax({
+            url: '/api/Clients/' + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                ShowClient(data);
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function EditItem(el) {
+
+        var id = $(el).attr('data-item');
+        GetClient(id);
+    }
+
+    function DeleteClient(id) {
+
+        $.ajax({
+            url: '/api/Clients/' + id,
+            type: 'DELETE',
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                GetAllClients();
+            },
+            error: function (x, y, z) {
+                alert(x + '\n' + y + '\n' + z);
+            }
+        });
+    }
+
+    function DeleteItem(el) {
+
+        var id = $(el).attr('data-item');
+        DeleteClient(id);
+    }
+
+    function WriteClients(clients) {
+        var strResult = "<table><th>ID</th><th>Клиент</th><th>Телефон</th>";
+        $.each(clients, function (index, client) {
+            strResult += "<tr><td>" + client.IdC + "</td><td> " + client.Client1 + "</td><td>" + client.Phone + "</td>" +
+                "<td><a class='link' id='editItem' data-item='" + client.IdC + "' onclick='EditItem(this);' >Редактировать</a></td>" +
+                "<td><a class='link' id='delItem' data-item='" + client.IdC + "' onclick='DeleteItem(this);' >Удалить</a></td></tr>";
+        });
+        strResult += "</table>";
+        $("#tableClientBlock").html(strResult);
+    }
+</script>
